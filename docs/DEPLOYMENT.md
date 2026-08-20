@@ -1,4 +1,4 @@
-# Deployment Guide � Waraq AI
+﻿# Deployment Guide — Waraq AI
 
 Waraq AI is a two-part app: a FastAPI backend (Hugging Face Spaces) and a React frontend (Netlify).
 Documents live in **Qdrant Cloud**; auth is **Clerk**. All keys are BYOK.
@@ -7,11 +7,11 @@ Documents live in **Qdrant Cloud**; auth is **Clerk**. All keys are BYOK.
 
 ``
 Browser (Netlify frontend, React + Clerk)
-   �  Bearer <Clerk JWT> on REST, ?token= on SSE
-   ?
-Hugging Face Space (FastAPI, Docker)
-   �  user_id filter on every query
-   ?
+   │  Bearer <Clerk JWT> on REST, ?token= on SSE
+   ▼
+Hugging Face Space (FastAPI, Gradio)
+   │  user_id filter on every query
+   ▼
 Qdrant Cloud (vector store, chunks tagged with user_id)
 ``
 
@@ -25,36 +25,36 @@ Qdrant Cloud (vector store, chunks tagged with user_id)
 ## 2. Clerk (auth)
 
 1. Create an app at https://dashboard.clerk.com
-2. **Secret key** (sk_test_...) ? backend env WARAQAI_CLERK_SECRET_KEY.
-3. **Publishable key** (pk_test_...) ? frontend env VITE_CLERK_PUBLISHABLE_KEY.
-4. In Clerk dashboard ? JWT Templates ? session token, ensure the sub claim
-   is the user id (default) � Waraq uses it for tenant isolation.
+2. **Secret key** (sk_test_...) → backend env WARAQAI_CLERK_SECRET_KEY.
+3. **Publishable key** (pk_test_...) → frontend env VITE_CLERK_PUBLISHABLE_KEY.
+4. In Clerk dashboard → JWT Templates → session token, ensure the sub claim
+   is the user id (default) — Waraq uses it for tenant isolation.
 
 ## 3. Hugging Face Spaces (backend)
 
-Hugging Face Spaces provides 100% free hosting for Docker containers with no credit card required. You can even set the Space to "Private" for free.
+Hugging Face Spaces provides 100% free hosting for Gradio apps with no credit card required. You can even set the Space to "Private" for free.
 
 1. Create an account at https://huggingface.co
-2. Go to **Spaces** ? **Create new Space**.
+2. Go to **Spaces** → **Create new Space**.
 3. Set a name (e.g. waraq-ai-backend).
 4. Select **License**: MIT.
-5. Select **Space SDK**: **Docker** (Blank).
+5. Select **Space SDK**: **Gradio** (Blank).
 6. Select **Space Hardware**: Free.
 7. Under **Visibility**, you can select **Private** (recommended) so your code is hidden.
 8. Click **Create Space**.
-9. Once created, go to **Settings** ? **Variables and secrets** and add these as **Secrets**:
+9. Once created, go to **Settings** → **Variables and secrets** and add these as **Secrets**:
    - WARAQAI_QDRANT_URL (Qdrant URL)
    - WARAQAI_QDRANT_API_KEY (Qdrant API Key)
    - WARAQAI_CLERK_SECRET_KEY (Clerk secret key)
    - WARAQAI_LLM_API_KEY (Your LLM key, e.g. DeepSeek/OpenAI)
    - WARAQAI_CORS_ORIGINS (Your Netlify URL, e.g. https://waraqai.netlify.app)
    - WARAQAI_CLERK_AUTHORIZED_PARTIES (Your Netlify URL)
-10. Finally, upload the backend code. You can either push via Git or upload files directly in the "Files" tab. Make sure the Dockerfile is at the root.
+10. Finally, upload the backend code. You can either push via Git or upload files directly in the "Files" tab.
 11. Note the backend URL (e.g. https://yourusername-waraq-ai-backend.hf.space).
 
 ## 4. Netlify (frontend)
 
-1. Netlify ? Add new site ? Import from Git ? pick the repo.
+1. Netlify → Add new site → Import from Git → pick the repo.
 2. Build settings (from rontend/netlify.toml):
    - Base directory: rontend
    - Build command: 
