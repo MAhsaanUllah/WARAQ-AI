@@ -38,25 +38,9 @@ Most RAG implementations fail in production: **hallucinated answers, poor recall
 
 ## The 5-Stage Pipeline
 
-```
-[PDF Upload]  ─────────────────────────────────────────────────────────────┐
-                                                                          │
- Stage 1: Smart Parsing & Chunking    pymupdf → page-safe chunks          │
-           metadata: page #, bbox, chunk hash                              │
-                                                                          ▼
- Stage 2: Hybrid Indexing             dense (bge-small-en-v1.5) + sparse   │
-           (SPLADE/BM25) → Qdrant                                          │
-                                                                          ▼
- Stage 3: Hybrid Retrieval            dense + sparse query → top-25        │
-           via Reciprocal Rank Fusion                                      │
-                                                                          ▼
- Stage 4: Cross-Encoder Reranking     flashrank → top-5 high-precision     │
-           context chunks                                                  │
-                                                                          ▼
- Stage 5: Grounded Generation         LiteLLM (BYOK) → Markdown answer     │
-           + real page badges                                              │
-                                                                          └──▶ [Client]
-```
+<p align="center">
+  <img src="assets/PIPELINE.png" alt="Waraq AI 5-Stage Pipeline" width="100%"/>
+</p>
 
 ---
 
@@ -214,6 +198,13 @@ waraq-ai/
 - [ ] **M7 frontend** Select-from-Resources dialog
 - [ ] OCR for scanned PDFs
 - [ ] Document deletion UI
+
+---
+
+## Author
+
+**M. Ahsaan Ullah**  
+*Built as a flagship portfolio piece demonstrating full-stack ownership and production-grade AI integration.*
 
 ---
 

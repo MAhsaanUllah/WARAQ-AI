@@ -299,9 +299,7 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
               style={{ background: 'var(--md-sys-color-surface-container-highest)', color: 'var(--md-sys-color-on-surface)', border: '1px solid var(--md-sys-color-outline-variant)', fontSize: '0.8rem', padding: '0.25rem 0.75rem', cursor: 'pointer' }}>
               {'</>'} Code
             </span>
-            <span className="btn" style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--md-sys-color-outline-variant)', fontSize: '0.8rem', padding: '0.25rem 0.75rem' }}>
-              More
-            </span>
+
           </div>
           
           <form onSubmit={handleQuery} className="flex gap-2 items-center" style={{ background: 'var(--md-sys-color-surface-container-highest)', borderRadius: 'var(--radius-pill)', padding: '0.5rem 0.5rem 0.5rem 1rem' }}>
