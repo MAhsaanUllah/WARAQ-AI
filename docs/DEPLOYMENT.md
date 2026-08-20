@@ -1,82 +1,81 @@
-# Deployment Guide — Waraq AI
+# Deployment Guide � Waraq AI
 
-Waraq AI is a two-part app: a FastAPI backend (Render) and a React frontend (Netlify).
+Waraq AI is a two-part app: a FastAPI backend (Hugging Face Spaces) and a React frontend (Netlify).
 Documents live in **Qdrant Cloud**; auth is **Clerk**. All keys are BYOK.
 
 ## Architecture
 
-```
+``
 Browser (Netlify frontend, React + Clerk)
-   │  Bearer <Clerk JWT> on REST, ?token= on SSE
-   ▼
-Render backend (FastAPI, uvicorn)
-   │  user_id filter on every query
-   ▼
+   �  Bearer <Clerk JWT> on REST, ?token= on SSE
+   ?
+Hugging Face Space (FastAPI, Docker)
+   �  user_id filter on every query
+   ?
 Qdrant Cloud (vector store, chunks tagged with user_id)
-```
+``
 
 ## 1. Qdrant Cloud
 
 1. Create a free cluster at https://cloud.qdrant.io
-2. Copy the cluster **URL** (e.g. `https://xyz.us-east-1-0.aws.cloud.qdrant.io:6333`)
+2. Copy the cluster **URL** (e.g. https://xyz.us-east-1-0.aws.cloud.qdrant.io:6333)
    and the **API key** from the cluster's Access tab.
-3. These become `WARAQAI_QDRANT_URL` + `WARAQAI_QDRANT_API_KEY` on Render.
+3. These become WARAQAI_QDRANT_URL + WARAQAI_QDRANT_API_KEY on your backend.
 
 ## 2. Clerk (auth)
 
 1. Create an app at https://dashboard.clerk.com
-2. **Secret key** (`sk_test_...`) → backend env `WARAQAI_CLERK_SECRET_KEY`.
-3. **Publishable key** (`pk_test_...`) → frontend env `VITE_CLERK_PUBLISHABLE_KEY`.
-4. In Clerk dashboard → JWT Templates → session token, ensure the `sub` claim
-   is the user id (default) — Waraq uses it for tenant isolation.
+2. **Secret key** (sk_test_...) ? backend env WARAQAI_CLERK_SECRET_KEY.
+3. **Publishable key** (pk_test_...) ? frontend env VITE_CLERK_PUBLISHABLE_KEY.
+4. In Clerk dashboard ? JWT Templates ? session token, ensure the sub claim
+   is the user id (default) � Waraq uses it for tenant isolation.
 
-## 3. Render (backend)
+## 3. Hugging Face Spaces (backend)
 
-Easiest path: the included `render.yaml` Blueprint.
+Hugging Face Spaces provides 100% free hosting for Docker containers with no credit card required. You can even set the Space to "Private" for free.
 
-1. Push this repo to GitHub.
-2. Render → New → Blueprint → pick the repo. Render reads `render.yaml`.
-3. In the service → Environment, set the `sync: false` vars:
-   - `WARAQAI_QDRANT_URL`, `WARAQAI_QDRANT_API_KEY`
-   - `WARAQAI_CLERK_SECRET_KEY`
-   - `WARAQAI_LLM_API_KEY` (BYOK)
-   - `WARAQAI_CORS_ORIGINS` → your Netlify URL (e.g. `https://waraqai.netlify.app`)
-   - `WARAQAI_CLERK_AUTHORIZED_PARTIES` → same Netlify URL
-4. Note the backend URL, e.g. `https://waraq-ai-backend.onrender.com`.
+1. Create an account at https://huggingface.co
+2. Go to **Spaces** ? **Create new Space**.
+3. Set a name (e.g. waraq-ai-backend).
+4. Select **License**: MIT.
+5. Select **Space SDK**: **Docker** (Blank).
+6. Select **Space Hardware**: Free.
+7. Under **Visibility**, you can select **Private** (recommended) so your code is hidden.
+8. Click **Create Space**.
+9. Once created, go to **Settings** ? **Variables and secrets** and add these as **Secrets**:
+   - WARAQAI_QDRANT_URL (Qdrant URL)
+   - WARAQAI_QDRANT_API_KEY (Qdrant API Key)
+   - WARAQAI_CLERK_SECRET_KEY (Clerk secret key)
+   - WARAQAI_LLM_API_KEY (Your LLM key, e.g. DeepSeek/OpenAI)
+   - WARAQAI_CORS_ORIGINS (Your Netlify URL, e.g. https://waraqai.netlify.app)
+   - WARAQAI_CLERK_AUTHORIZED_PARTIES (Your Netlify URL)
+10. Finally, upload the backend code. You can either push via Git or upload files directly in the "Files" tab. Make sure the Dockerfile is at the root.
+11. Note the backend URL (e.g. https://yourusername-waraq-ai-backend.hf.space).
 
 ## 4. Netlify (frontend)
 
-1. Netlify → Add new site → Import from Git → pick the repo.
-2. Build settings (from `frontend/netlify.toml`):
-   - Base directory: `frontend`
-   - Build command: `npm ci && npm run build`
-   - Publish directory: `dist`
+1. Netlify ? Add new site ? Import from Git ? pick the repo.
+2. Build settings (from rontend/netlify.toml):
+   - Base directory: rontend
+   - Build command: 
+pm ci && npm run build
+   - Publish directory: dist
 3. Environment variables:
-   - `VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxx`
-   - `VITE_API_BASE_URL=https://waraq-ai-backend.onrender.com`
-4. After the first deploy, copy the site URL back into Render's
-   `WARAQAI_CORS_ORIGINS` + `WARAQAI_CLERK_AUTHORIZED_PARTIES`, then redeploy.
+   - VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxx
+   - VITE_API_BASE_URL=https://yourusername-waraq-ai-backend.hf.space
+4. Deploy!
 
 ## Env var reference
 
 | Var | Where | Purpose |
 |---|---|---|
-| `WARAQAI_QDRANT_URL` | Render | Qdrant Cloud cluster URL |
-| `WARAQAI_QDRANT_API_KEY` | Render | Qdrant Cloud API key |
-| `WARAQAI_CLERK_SECRET_KEY` | Render | Clerk backend secret (JWT verify) |
-| `WARAQAI_CORS_ORIGINS` | Render | Allowed frontend origins |
-| `WARAQAI_CLERK_AUTHORIZED_PARTIES` | Render | Clerk JWT `azp` allowlist |
-| `WARAQAI_LLM_PROVIDER` | Render | deepseek / gemini / openai / anthropic / openrouter |
-| `WARAQAI_LLM_API_KEY` | Render | BYOK LLM key |
-| `WARAQAI_LLM_MODEL` | Render | Optional LiteLLM model override |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Netlify | Clerk frontend key |
-| `VITE_API_BASE_URL` | Netlify | Backend URL for fetch/SSE |
-
-## Local dev (unchanged)
-
-```bash
-docker compose up -d          # Qdrant
-copy .env.example .env        # add WARAQAI_CLERK_SECRET_KEY for auth
-uvicorn app.main:app --reload
-cd frontend && npm run dev    # Vite proxy → localhost:8000
-```
+| WARAQAI_QDRANT_URL | HF Spaces | Qdrant Cloud cluster URL |
+| WARAQAI_QDRANT_API_KEY | HF Spaces | Qdrant Cloud API key |
+| WARAQAI_CLERK_SECRET_KEY | HF Spaces | Clerk backend secret (JWT verify) |
+| WARAQAI_CORS_ORIGINS | HF Spaces | Allowed frontend origins |
+| WARAQAI_CLERK_AUTHORIZED_PARTIES | HF Spaces | Clerk JWT zp allowlist |
+| WARAQAI_LLM_PROVIDER | HF Spaces | deepseek / gemini / openai / anthropic / openrouter |
+| WARAQAI_LLM_API_KEY | HF Spaces | BYOK LLM key |
+| WARAQAI_LLM_MODEL | HF Spaces | Optional LiteLLM model override |
+| VITE_CLERK_PUBLISHABLE_KEY | Netlify | Clerk frontend key |
+| VITE_API_BASE_URL | Netlify | Backend URL for fetch/SSE |

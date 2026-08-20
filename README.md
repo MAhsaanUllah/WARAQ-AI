@@ -12,7 +12,7 @@
   <a href="#features"><img alt="Qdrant" src="https://img.shields.io/badge/Qdrant-v1.19-EB4D5D"/></a>
   <a href="#features"><img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black"/></a>
   <a href="LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"/></a>
-  <a href="docs/DEPLOYMENT.md"><img alt="Deploy" src="https://img.shields.io/badge/deploy-Render%20%2B%20Netlify-blue"/></a>
+  <a href="docs/DEPLOYMENT.md"><img alt="Deploy" src="https://img.shields.io/badge/deploy-HF%20Spaces%20%2B%20Netlify-blue"/></a>
 </p>
 
 ---
@@ -121,17 +121,17 @@ Integration tests skip cleanly when Qdrant isn't running. Auth is bypassed via a
 
 ## Deployment
 
-Waraq AI deploys as two services: **FastAPI on Render** + **React on Netlify**, backed by **Qdrant Cloud**.
+Waraq AI deploys as two services: **FastAPI on Hugging Face Spaces** + **React on Netlify**, backed by **Qdrant Cloud**.
 
 ```
-Browser (Netlify)  ──Bearer JWT──▶  Render (FastAPI)  ──▶  Qdrant Cloud
+Browser (Netlify)  ──Bearer JWT──▶  HF Space (FastAPI)  ──▶  Qdrant Cloud
         ▲                                                       │
         └─────────── Clerk (auth) ◀─────────────────────────────┘
 ```
 
-- [`render.yaml`](render.yaml) — Render Blueprint (backend + env vars)
+- [`Dockerfile`](Dockerfile) — Hugging Face Spaces Docker build
 - [`frontend/netlify.toml`](frontend/netlify.toml) — Netlify build + SPA redirect
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — full step-by-step guide (Qdrant Cloud → Clerk → Render → Netlify)
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — full step-by-step guide (Qdrant Cloud → Clerk → HF Spaces → Netlify)
 
 ---
 
@@ -159,7 +159,7 @@ Interactive docs at `/docs` (Swagger UI) when the server runs.
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | The 5-stage pipeline + locked technical decisions |
 | [`docs/api-contract.md`](docs/api-contract.md) | Frozen API interface (both app halves build against it) |
-| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Deploy guide: Qdrant Cloud → Clerk → Render → Netlify |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Deploy guide: Qdrant Cloud → Clerk → HF Spaces → Netlify |
 
 **Status: M1–M8 complete.** Next: Select-from-Resources dialog, OCR for scanned PDFs, document deletion UI.
 
@@ -179,7 +179,7 @@ waraq-ai/
 ├── tests/                     # 55 tests (unit + integration)
 ├── assets/                    # brand images (logo, tech-stack diagram)
 ├── docker-compose.yml         # Qdrant
-├── render.yaml                # Render Blueprint (backend)
+├── Dockerfile                 # Hugging Face Spaces backend deployment
 └── pyproject.toml             # dependencies (no torch in base install)
 ```
 
