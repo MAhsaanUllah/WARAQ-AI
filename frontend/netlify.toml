@@ -1,0 +1,19 @@
+# Netlify — Waraq AI frontend
+# Build settings: base directory = frontend, build command = npm run build,
+# publish directory = dist. Or just connect the repo and Netlify reads this.
+
+[build]
+  base = "frontend"
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Set in Netlify dashboard → Site settings → Environment variables:
+  #   VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxx
+  #   VITE_API_BASE_URL=https://waraq-ai-backend.onrender.com
+
+# SPA fallback: any unmatched route serves index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

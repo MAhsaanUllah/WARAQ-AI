@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual envs
+.venv/
+venv/
+
+# Local env (contains BYOK API keys — NEVER commit)
+.env
+
+# Agent Conversations & Briefs (Do not commit)
+*-BRIEF*.md
+milestones.md
+learning-log.md
+PERSONA.md
+.commandcode/
+.gemini/
+
+# Qdrant local data
+qdrant_storage/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

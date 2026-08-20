@@ -1,0 +1,147 @@
+"""Grounded LLM generation via LiteLLM (BYOK)."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+
+import litellm
+
+from app.core.config import get_settings
+from app.core.runtime_config import get_llm_config
+from app.models.api import Source
+from app.models.retrieval import RerankedResult
+
+SYSTEM_PROMPT = """You are Waraq AI, a grounded document assistant. Answer ONLY from the provided context.
+
+CONTEXT RULES:
+- Every factual claim must carry a citation marker like [1] or [2] that references the numbered sources below.
+- If the context does not contain the answer, say "I couldn't find that in the provided documents." — never invent facts.
+- Never mention sources the context does not list.
+
+CONTEXT:
+{context}
+
+Answer in Markdown. Cite with [n] after each claim, where n is the source number below.
+"""
+
+
+class LLMNotConfiguredError(RuntimeError):
+    """Raised when no LLM provider/key is configured (env or runtime)."""
+
+
+def _resolve_model() -> tuple[str, str]:
+    """Resolve the LiteLLM model string + API key.
+
+    Precedence: runtime settings (set via the Settings UI) then .env
+    (WARAQAI_LLM_PROVIDER / WARAQAI_LLM_API_KEY).
+    """
+    settings = get_settings()
+    runtime = get_llm_config()
+
+    provider = runtime.get("provider") or settings.llm_provider
+    api_key = runtime.get("api_key") or settings.llm_api_key.get_secret_value()
+
+    if not api_key:
+        raise LLMNotConfiguredError(
+            "No LLM API key configured. Set it in the Settings page (BYOK) "
+            "or add WARAQAI_LLM_API_KEY to .env."
+        )
+
+    model = (
+        _model_for_provider(provider)
+        if runtime.get("provider")
+        else settings.llm_model or _model_for_provider(provider)
+    )
+    return model, api_key
+
+
+def _model_for_provider(provider: str) -> str:
+    """Map a provider to a default LiteLLM model string."""
+    defaults = {
+        "deepseek": "deepseek/deepseek-chat",
+        "gemini": "gemini/gemini-2.0-flash",
+        "openai": "openai/gpt-4o-mini",
+        "anthropic": "anthropic/claude-sonnet-4-20250514",
+        "openrouter": "openrouter/anthropic/claude-sonnet-4-20250514",
+    }
+    return defaults.get(provider, f"{provider}/{provider}")
+
+
+def build_messages(
+    query: str,
+    chunks: list[RerankedResult],
+    web_context: list[dict] | None = None,
+) -> list[dict]:
+    """Assemble the system prompt with numbered context plus the question."""
+    context_blocks = []
+    for i, chunk in enumerate(chunks, start=1):
+        page = chunk.page_number
+        filename = chunk.filename
+        context_blocks.append(f"[{i}] (page {page}, {filename}):\n{chunk.text}")
+
+    if web_context:
+        for i, item in enumerate(web_context, start=len(chunks) + 1):
+            context_blocks.append(
+                f"[{i}] [web] ({item.get('title', 'web')}, {item.get('url', '')}):\n{item.get('snippet', '')}"
+            )
+
+    context = "\n\n".join(context_blocks)
+
+    system = SYSTEM_PROMPT.format(context=context)
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": query},
+    ]
+
+
+async def generate_answer(
+    query: str,
+    chunks: list[RerankedResult],
+    web_context: list[dict] | None = None,
+) -> str:
+    """Single-shot grounded answer (non-streaming)."""
+    model, api_key = _resolve_model()
+    messages = build_messages(query, chunks, web_context)
+
+    response = await litellm.acompletion(
+        model=model,
+        messages=messages,
+        api_key=api_key,
+        temperature=0.1,
+    )
+    return response.choices[0].message.content or ""
+
+
+async def stream_answer(
+    query: str,
+    chunks: list[RerankedResult],
+    web_context: list[dict] | None = None,
+) -> AsyncIterator[str]:
+    """Yield answer tokens as they arrive (for SSE)."""
+    model, api_key = _resolve_model()
+    messages = build_messages(query, chunks, web_context)
+
+    stream = await litellm.acompletion(
+        model=model,
+        messages=messages,
+        api_key=api_key,
+        temperature=0.1,
+        stream=True,
+    )
+    async for chunk in stream:
+        delta = chunk.choices[0].delta
+        if delta and delta.content:
+            yield delta.content
+
+
+def to_source(chunk: RerankedResult) -> Source:
+    """Map a reranked chunk to the contract's Source shape."""
+    return Source(
+        document_id=chunk.doc_id,
+        filename=chunk.filename,
+        page=chunk.page_number,
+        chunk_hash=chunk.chunk_id,
+        bbox=chunk.bbox,
+        score=chunk.score,
+        snippet=chunk.text.strip()[:300],
+    )
