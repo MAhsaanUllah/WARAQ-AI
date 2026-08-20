@@ -3,8 +3,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { streamQuery, uploadDocuments } from '../api';
 import SourceCard from './SourceCard';
+import { useAuth } from '@clerk/clerk-react';
 
 export default function QueryPage({ sessionId, initialHistory, onUpdateSession, settings }) {
+  const { getToken } = useAuth();
   const [question, setQuestion] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -68,7 +70,8 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
     setIsUploading(true);
     
     try {
-      const result = await uploadDocuments(files);
+      const token = await getToken();
+      const result = await uploadDocuments(files, token);
       setHistory(prev => [
         ...prev,
         { role: 'ai', text: `✅ Successfully indexed **${result.results.length}** file(s)! (${result.total_pages} pages, ${result.total_chunks} chunks). You can now ask me questions about them.` }
@@ -87,7 +90,10 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
   const fetchResources = async () => {
     setIsLoadingResources(true);
     try {
-      const response = await fetch('/api/documents');
+      const token = await getToken();
+      const response = await fetch('/api/documents', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
         setResources(data);
@@ -120,6 +126,7 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
 
     if (abortStreamRef.current) abortStreamRef.current();
 
+    const token = await getToken();
     abortStreamRef.current = streamQuery(
       userQ,
       settings,
@@ -159,7 +166,8 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
         });
         setIsStreaming(false);
         setStatusMsg('');
-      }
+      },
+      token
     );
   };
 
