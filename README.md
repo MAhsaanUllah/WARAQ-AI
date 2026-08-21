@@ -175,8 +175,16 @@ waraq-ai/
 ├── assets/                    # brand images (logo, tech-stack diagram)
 ├── docker-compose.yml         # Qdrant for local dev
 ├── Dockerfile                 # Railway backend deployment
-└── pyproject.toml             # dependencies (no torch in base install)
 ```
+
+---
+
+## Future Architecture & Security Hardening
+While the current architecture implements robust baseline security (Stateless BYOK, JWT Auth, Quota limits), the following enterprise-grade hardening steps are planned for future scale:
+- **API Key Security (XSS Prevention):** Transition from `localStorage` BYOK to backend AES-256 encrypted storage or HTTP-only secure cookies.
+- **LLM Prompt Injection (Data Poisoning):** Integrate LlamaGuard or NeMo Guardrails to detect and block malicious instructions hidden in uploaded PDFs.
+- **API Rate Limiting (DDoS Protection):** Implement `slowapi` (Redis-based) rate limiting on the `/api/query` endpoint (e.g., 10 queries per minute per user) to protect server compute resources.
+- **Malicious File Processing (Zip/PDF Bombs):** Offload PyMuPDF extraction to isolated Serverless functions (AWS Lambda) to prevent memory exhaustion attacks on the main API server.
 
 ---
 
