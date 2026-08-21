@@ -1,4 +1,3 @@
-
 <p align="center">
   <img src="assets/COVER.png" alt="Waraq AI — tech stack" width="100%"/>
 </p>
@@ -13,7 +12,7 @@
   <a href="#features"><img alt="Qdrant" src="https://img.shields.io/badge/Qdrant-v1.19-EB4D5D"/></a>
   <a href="#features"><img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black"/></a>
   <a href="LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"/></a>
-  <a href="docs/DEPLOYMENT.md"><img alt="Deploy" src="https://img.shields.io/badge/deploy-HF%20Spaces%20%2B%20Netlify-blue"/></a>
+  <a href="docs/DEPLOYMENT.md"><img alt="Deploy" src="https://img.shields.io/badge/deploy-Railway-blue"/></a>
 </p>
 
 ---
@@ -31,9 +30,9 @@ Most RAG implementations fail in production: **hallucinated answers, poor recall
 | 🎯 **Verifiable answers** | Every answer carries real page numbers + PDF coordinates — no hallucinated sources |
 | 🔍 **Hybrid retrieval** | Dense embeddings + sparse BM25 fused with Reciprocal Rank Fusion (RRF) |
 | 🎯 **Reranking precision** | Cross-encoder reranks 25 candidates → top-5 high-precision context chunks |
-| 🔐 **Multi-tenant** | Clerk auth — users only see their own documents |
-| 🛡️ **Local & private** | Embeddings run on your machine (FastEmbed ONNX) — zero data egress for indexing |
-| 🔑 **BYOK** | Bring your own key — DeepSeek / Gemini / OpenAI / Anthropic / OpenRouter, swap via settings |
+| 🔐 **Multi-tenant SaaS** | Clerk JWT Auth — Strict isolation so users only see their own documents |
+| 🛡️ **Zero Egress & Fast** | Embeddings run locally via FastEmbed ONNX (No PyTorch overhead) |
+| 🔑 **Stateless BYOK** | Bring Your Own Key architecture (DeepSeek/Gemini/OpenAI) using local browser storage (Zero API keys stored on backend) |
 
 ---
 
@@ -53,15 +52,14 @@ Most RAG implementations fail in production: **hallucinated answers, poor recall
 - **Cross-encoder reranking** — flashrank (ONNX, no torch in base install)
 - **Deterministic citations** — `page_number` + bounding-box coordinates on every source
 
-### Multi-tenant (production-ready)
-- **Clerk auth** — JWT verified against Clerk's JWKS; `user_id` filters every query, upload, and listing
-- **Document isolation** — users can only search and list their own documents
-- **SSE streaming auth** — `?token=` query param for EventSource
+### Multi-tenant (Production-Ready)
+- **Clerk Auth** — JWT verified against Clerk's JWKS; `user_id` filters every query, upload, and listing.
+- **Stateless BYOK Architecture** — Users supply their LLM and Search API keys via the frontend UI. The keys are stored in `localStorage` and sent via HTTP headers/query params. The backend is completely stateless and never saves user API keys to memory, preventing cross-tenant leakage.
+- **Abuse Prevention Quotas** — Hardcoded portfolio protections: Max 5 documents per user, max 50 pages per PDF, and max 5MB file size limit to prevent server overload.
 
 ### App
 - **Notebook-style resources** — select specific documents to chat with (NotebookLM-style scoped search)
 - **Web search toggle** — optional Tavily / Brave grounding alongside your docs
-- **BYOK LLM settings** — set provider + key at runtime from the UI (never round-trips the key)
 - **Streaming answers** — SSE with live status events + citation cards
 - **Multi-file upload** — batch PDF ingestion
 
@@ -78,7 +76,7 @@ Most RAG implementations fail in production: **hallucinated answers, poor recall
 | LLM | LiteLLM — **BYOK**: deepseek / gemini / openai / anthropic / openrouter |
 | Auth | Clerk (multi-tenant JWT) |
 | Frontend | React 19 + Vite |
-| Web Search | Tavily / Brave (optional, BYOK) |
+| Deployment | Railway (Backend) + Netlify (Frontend) |
 
 ---
 
@@ -122,17 +120,16 @@ Integration tests skip cleanly when Qdrant isn't running. Auth is bypassed via a
 
 ## Deployment
 
-Waraq AI deploys as two services: **FastAPI on Hugging Face Spaces** + **React on Netlify**, backed by **Qdrant Cloud**.
+Waraq AI deploys as two services: **FastAPI Backend on Railway** + **React Frontend on Netlify**, backed by **Qdrant Cloud**.
 
 ```
-Browser (Netlify)  ──Bearer JWT──▶  HF Space (FastAPI)  ──▶  Qdrant Cloud
+Browser (Netlify)  ──Bearer JWT──▶  Railway (FastAPI)  ──▶  Qdrant Cloud
         ▲                                                       │
         └─────────── Clerk (auth) ◀─────────────────────────────┘
 ```
 
-- [`Dockerfile`](Dockerfile) — Hugging Face Spaces Docker build
+- [`Dockerfile`](Dockerfile) — Railway Backend build instructions
 - [`frontend/netlify.toml`](frontend/netlify.toml) — Netlify build + SPA redirect
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — full step-by-step guide (Qdrant Cloud → Clerk → HF Spaces → Netlify)
 
 ---
 
@@ -142,12 +139,10 @@ The API is **frozen** in [`docs/api-contract.md`](docs/api-contract.md):
 
 | Endpoint | Method | Purpose |
 |---|---|---|
-| `/api/upload-doc(s)` | POST | Ingest PDF(s), tagged with the user's `user_id` |
+| `/api/upload-doc(s)` | POST | Ingest PDF(s), tagged with the user's `user_id` (Limits enforced) |
 | `/api/documents` | GET | List the current user's indexed documents |
 | `/api/query` | POST | Hybrid search → rerank → grounded answer + `sources[]` |
-| `/api/stream-query` | GET (SSE) | Streaming answer: `status` → `answer_delta` → `done` |
-| `/api/settings` | GET/PUT | BYOK LLM provider + key (never returns the key) |
-| `/api/settings/search` | PUT | Tavily / Brave web-search key |
+| `/api/stream-query` | GET (SSE) | Streaming answer: `status` → `answer_delta` → `done`. Requires BYOK params (`llm_provider`, `llm_api_key`) |
 | `/health` | GET | Liveness + Qdrant connectivity |
 
 Interactive docs at `/docs` (Swagger UI) when the server runs.
@@ -160,9 +155,8 @@ Interactive docs at `/docs` (Swagger UI) when the server runs.
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | The 5-stage pipeline + locked technical decisions |
 | [`docs/api-contract.md`](docs/api-contract.md) | Frozen API interface (both app halves build against it) |
-| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Deploy guide: Qdrant Cloud → Clerk → HF Spaces → Netlify |
 
-**Status: M1–M8 complete.** Next: Select-from-Resources dialog, OCR for scanned PDFs, document deletion UI.
+**Status: M1–M8 complete.** Next: OCR for scanned PDFs, document deletion UI.
 
 ---
 
@@ -179,8 +173,8 @@ waraq-ai/
 ├── docs/                      # architecture, contract, deployment
 ├── tests/                     # 55 tests (unit + integration)
 ├── assets/                    # brand images (logo, tech-stack diagram)
-├── docker-compose.yml         # Qdrant
-├── Dockerfile                 # Hugging Face Spaces backend deployment
+├── docker-compose.yml         # Qdrant for local dev
+├── Dockerfile                 # Railway backend deployment
 └── pyproject.toml             # dependencies (no torch in base install)
 ```
 
@@ -196,7 +190,7 @@ waraq-ai/
 - [x] **M6** React frontend
 - [x] **M7** Notebook/Resources scoped chat (backend done)
 - [x] **M8** Clerk multi-tenant auth + deployment configs
-- [ ] **M7 frontend** Select-from-Resources dialog
+- [x] **M7 frontend** Select-from-Resources dialog
 - [ ] OCR for scanned PDFs
 - [ ] Document deletion UI
 

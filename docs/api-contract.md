@@ -48,10 +48,12 @@
 - Parses + chunks the PDF (Stage 1), embeds + upserts (Stage 2), all async.
 - Returns immediately only after indexing completes (201). For large files this may take seconds — the frontend should show a progress state.
 - Idempotency: same document content → same `chunk_hash` set → re-upload overwrites, does not duplicate.
+- **Quota Limits Enforced:** Maximum 5 documents per user. 5 MB max file size. 50 pages max per PDF.
 
 **Errors:**
-- `400` — not a PDF / unreadable file
-- `413` — file too large (limit: 50 MB, configurable)
+- `400` — not a PDF / unreadable file / extraction limit exceeded (>50 pages)
+- `403` — Portfolio limit reached (max 5 documents)
+- `413` — file too large (limit: 5 MB)
 - `503` — Qdrant unavailable
 
 ### `POST /api/upload-docs`
@@ -147,7 +149,16 @@
 
 ### `GET /api/stream-query`
 **Purpose:** stream the same pipeline as `/api/query`, but the answer arrives token-by-token.
-**Query params:** `?question=...&top_k_candidates=25&top_k_final=5&document_ids=uuid1,uuid2&use_web_search=false`
+**Query params:** 
+- `question=...`
+- `top_k_candidates=25`
+- `top_k_final=5`
+- `document_ids=uuid1,uuid2`
+- `use_web_search=false`
+- `llm_provider=deepseek` (Stateless BYOK)
+- `llm_api_key=sk-123...` (Stateless BYOK)
+- `search_provider=tavily` (Stateless BYOK)
+- `search_api_key=tvly-123...` (Stateless BYOK)
 
 `document_ids` is a comma-separated list of document UUIDs; omitting it = global search.
 
@@ -210,7 +221,6 @@ data: {"sources": [...same schema as /api/query...], "processing_ms": 900}
 
 - Allowed origin: `http://localhost:5173` (Vite dev server) — configurable via `WARAQAI_CORS_ORIGINS`.
 - Methods: `GET, POST, OPTIONS`. Headers: `Content-Type`.
-- No credentials/cookies used; token-free local API.
 
 ---
 
