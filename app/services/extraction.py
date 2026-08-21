@@ -18,6 +18,10 @@ def extract_document(data: bytes, filename: str) -> Document:
     except Exception as exc:
         raise ExtractionError(f"unable to open PDF '{filename}': {exc}") from exc
 
+    if len(doc) > 50:
+        doc.close()
+        raise ExtractionError(f"'{filename}' exceeds portfolio limit of 50 pages.")
+
     pages: list[Page] = []
     try:
         for page_number, page in enumerate(doc, start=1):

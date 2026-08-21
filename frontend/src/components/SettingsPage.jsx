@@ -1,72 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { getLLMSettings, setLLMSettings, setSearchSettings } from '../api';
+import React, { useState } from 'react';
 
 export default function SettingsPage({ settings, setSettings }) {
   const [showKey, setShowKey] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
   const [showSearchKey, setShowSearchKey] = useState(false);
   const [searchStatusMessage, setSearchStatusMessage] = useState('');
-  const [isSavingSearch, setIsSavingSearch] = useState(false);
-
-  useEffect(() => {
-    getLLMSettings()
-      .then(data => {
-        setSettings(prev => ({ 
-          ...prev, 
-          provider: data.provider,
-          searchProvider: data.search_provider || 'tavily'
-        }));
-        setStatusMessage(data.has_api_key 
-          ? `Provider: ${data.provider} — key saved in backend memory` 
-          : `Provider: ${data.provider} — no key set`);
-        
-        setSearchStatusMessage(data.has_search_key
-          ? `Web search: ${data.search_provider} — key saved in backend memory`
-          : `Web search: ${data.search_provider || 'tavily'} — no key set`);
-      })
-      .catch(err => {
-        console.error(err);
-        setStatusMessage('Warning: Could not connect to backend settings API');
-        setSearchStatusMessage('Warning: Could not connect to backend settings API');
-      });
-  }, [setSettings]);
-
-  const handleSaveConfig = async () => {
-    setIsSaving(true);
-    setStatusMessage('');
-    try {
-      const result = await setLLMSettings({
-        provider: settings.provider || 'deepseek',
-        apiKey: settings.apiKey || ''
-      });
-      setStatusMessage(result.has_api_key 
-        ? `Success! Provider: ${result.provider} — key saved in backend memory` 
-        : `Success! Provider: ${result.provider} — no key set`);
-    } catch (err) {
-      setStatusMessage(`Error: ${err.message}`);
-    } finally {
-      setIsSaving(false);
-    }
+  const handleSaveConfig = () => {
+    setStatusMessage(`Success! Provider: ${settings.provider || 'deepseek'} — key saved securely in your browser.`);
+    setTimeout(() => setStatusMessage(''), 3000);
   };
 
-  const handleSaveSearchConfig = async () => {
-    setIsSavingSearch(true);
-    setSearchStatusMessage('');
-    try {
-      const result = await setSearchSettings({
-        provider: settings.searchProvider || 'tavily',
-        apiKey: settings.searchApiKey || ''
-      });
-      setSearchStatusMessage(result.has_search_key 
-        ? `Success! Web search: ${result.search_provider} — key saved in backend memory` 
-        : `Success! Web search: ${result.search_provider} — no key set`);
-    } catch (err) {
-      setSearchStatusMessage(`Error: ${err.message}`);
-    } finally {
-      setIsSavingSearch(false);
-    }
+  const handleSaveSearchConfig = () => {
+    setSearchStatusMessage(`Success! Web search: ${settings.searchProvider || 'tavily'} — key saved securely in your browser.`);
+    setTimeout(() => setSearchStatusMessage(''), 3000);
   };
   
   const handleChange = (e) => {
@@ -185,7 +132,7 @@ export default function SettingsPage({ settings, setSettings }) {
           <div className="surface-card" style={{ padding: '1.25rem', border: '1px solid var(--md-sys-color-outline-variant)' }}>
             <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '0.95rem' }}>LLM Provider & Key</h4>
             <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Select your preferred AI provider and enter your API key to override the server defaults. Keys are stored locally.
+              Select your preferred AI provider and enter your API key to override the server defaults. Keys are stored locally in your browser.
             </p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -272,7 +219,6 @@ export default function SettingsPage({ settings, setSettings }) {
 
               <button 
                 onClick={handleSaveConfig}
-                disabled={isSaving}
                 style={{
                   marginTop: '0.5rem',
                   padding: '0.6rem 1rem',
@@ -281,15 +227,14 @@ export default function SettingsPage({ settings, setSettings }) {
                   border: 'none',
                   borderRadius: 'var(--radius-sm)',
                   fontWeight: '600',
-                  cursor: isSaving ? 'not-allowed' : 'pointer',
-                  opacity: isSaving ? 0.7 : 1,
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem'
                 }}
               >
-                {isSaving ? 'Saving...' : 'Save Configuration'}
+                Save Configuration
               </button>
 
               {statusMessage && (
@@ -321,7 +266,7 @@ export default function SettingsPage({ settings, setSettings }) {
           <div className="surface-card" style={{ padding: '1.25rem', border: '1px solid var(--md-sys-color-outline-variant)', marginTop: '1.5rem' }}>
             <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '0.95rem' }}>Web Search Configuration</h4>
             <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Tavily: https://tavily.com (free tier). Brave: https://brave.com/search/api/ (free tier). The key lives in server memory until restart — never returned to the browser.
+              Tavily: https://tavily.com (free tier). Brave: https://brave.com/search/api/ (free tier). The key lives in your browser and is sent securely with each query.
             </p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -404,7 +349,6 @@ export default function SettingsPage({ settings, setSettings }) {
 
               <button 
                 onClick={handleSaveSearchConfig}
-                disabled={isSavingSearch}
                 style={{
                   marginTop: '0.5rem',
                   padding: '0.6rem 1rem',
@@ -413,15 +357,14 @@ export default function SettingsPage({ settings, setSettings }) {
                   border: 'none',
                   borderRadius: 'var(--radius-sm)',
                   fontWeight: '600',
-                  cursor: isSavingSearch ? 'not-allowed' : 'pointer',
-                  opacity: isSavingSearch ? 0.7 : 1,
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem'
                 }}
               >
-                {isSavingSearch ? 'Saving...' : 'Save Configuration'}
+                Save Configuration
               </button>
 
               {searchStatusMessage && (

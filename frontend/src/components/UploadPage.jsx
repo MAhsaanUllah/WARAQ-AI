@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { uploadDocuments } from '../api';
+import { useAuth } from '@clerk/clerk-react';
 
 export default function UploadPage({ onUploadSuccess }) {
+  const { getToken } = useAuth();
   const [files, setFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +29,8 @@ export default function UploadPage({ onUploadSuccess }) {
     setError('');
     
     try {
-      const result = await uploadDocuments(files);
+      const token = await getToken();
+      const result = await uploadDocuments(files, token);
       setProgress(result);
       setTimeout(() => {
         onUploadSuccess(result);

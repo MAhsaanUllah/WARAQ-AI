@@ -108,7 +108,7 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
     }
   };
 
-  const handleQuery = (e) => {
+  const handleQuery = async (e) => {
     e.preventDefault();
     if (!question.trim() || isStreaming || isUploading) return;
     

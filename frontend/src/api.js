@@ -55,6 +55,19 @@ export function streamQuery(question, settings, useWebSearch, documentIds, onEve
   
   let url = `/api/stream-query?question=${encodeURIComponent(question)}&top_k_candidates=${topKCandidates}&top_k_final=${topKFinal}`;
   
+  if (settings?.provider) {
+    url += `&llm_provider=${encodeURIComponent(settings.provider)}`;
+  }
+  if (settings?.apiKey) {
+    url += `&llm_api_key=${encodeURIComponent(settings.apiKey)}`;
+  }
+  if (settings?.searchProvider) {
+    url += `&search_provider=${encodeURIComponent(settings.searchProvider)}`;
+  }
+  if (settings?.searchApiKey) {
+    url += `&search_api_key=${encodeURIComponent(settings.searchApiKey)}`;
+  }
+
   if (useWebSearch) {
     url += '&use_web_search=true';
   }
@@ -123,67 +136,3 @@ export function streamQuery(question, settings, useWebSearch, documentIds, onEve
   };
 }
 
-/** 
- * Fetch the current LLM provider and whether a key is set. 
- * Never returns the key. 
- */
-export async function getLLMSettings(token = null) {
-  const headers = {};
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const response = await fetch('/api/settings', { headers });
-  if (!response.ok) {
-    let errorDetail = 'Failed to load settings';
-    try {
-      errorDetail = (await response.json()).detail || errorDetail;
-    } catch (e) {}
-    throw new Error(errorDetail);
-  }
-  return response.json();
-}
-
-/** 
- * Save the BYOK provider + API key (in-memory on the backend). 
- */
-export async function setLLMSettings({ provider, apiKey }, token = null) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const response = await fetch('/api/settings', {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ provider, api_key: apiKey }),
-  });
-  
-  if (!response.ok) {
-    let errorDetail = 'Failed to save settings';
-    try {
-      errorDetail = (await response.json()).detail || errorDetail;
-    } catch (e) {}
-    throw new Error(errorDetail);
-  }
-  return response.json();
-}
-
-/** 
- * Save the Web Search provider + API key (in-memory on the backend). 
- */
-export async function setSearchSettings({ provider, apiKey }, token = null) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const response = await fetch('/api/settings/search', {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ provider, api_key: apiKey }),
-  });
-  
-  if (!response.ok) {
-    let errorDetail = 'Failed to save search settings';
-    try {
-      errorDetail = (await response.json()).detail || errorDetail;
-    } catch (e) {}
-    throw new Error(errorDetail);
-  }
-  return response.json();
-}

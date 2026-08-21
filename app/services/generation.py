@@ -7,7 +7,6 @@ from collections.abc import AsyncIterator
 import litellm
 
 from app.core.config import get_settings
-from app.core.runtime_config import get_llm_config
 from app.models.api import Source
 from app.models.retrieval import RerankedResult
 
@@ -29,17 +28,16 @@ class LLMNotConfiguredError(RuntimeError):
     """Raised when no LLM provider/key is configured (env or runtime)."""
 
 
-def _resolve_model() -> tuple[str, str]:
+def _resolve_model(provider_override: str | None = None, api_key_override: str | None = None) -> tuple[str, str]:
     """Resolve the LiteLLM model string + API key.
 
-    Precedence: runtime settings (set via the Settings UI) then .env
+    Precedence: runtime settings (from request headers) then .env
     (WARAQAI_LLM_PROVIDER / WARAQAI_LLM_API_KEY).
     """
     settings = get_settings()
-    runtime = get_llm_config()
 
-    provider = runtime.get("provider") or settings.llm_provider
-    api_key = runtime.get("api_key") or settings.llm_api_key.get_secret_value()
+    provider = provider_override or settings.llm_provider
+    api_key = api_key_override or settings.llm_api_key.get_secret_value()
 
     if not api_key:
         raise LLMNotConfiguredError(
@@ -49,7 +47,7 @@ def _resolve_model() -> tuple[str, str]:
 
     model = (
         _model_for_provider(provider)
-        if runtime.get("provider")
+        if provider_override
         else settings.llm_model or _model_for_provider(provider)
     )
     return model, api_key
@@ -116,9 +114,11 @@ async def stream_answer(
     query: str,
     chunks: list[RerankedResult],
     web_context: list[dict] | None = None,
+    llm_provider: str | None = None,
+    llm_api_key: str | None = None,
 ) -> AsyncIterator[str]:
     """Yield answer tokens as they arrive (for SSE)."""
-    model, api_key = _resolve_model()
+    model, api_key = _resolve_model(llm_provider, llm_api_key)
     messages = build_messages(query, chunks, web_context)
 
     stream = await litellm.acompletion(

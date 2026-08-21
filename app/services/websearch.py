@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import httpx
 
-from app.core.runtime_config import get_search_config
 
 SEARCH_TIMEOUT = 10.0
 DEFAULT_MAX_RESULTS = 5
@@ -14,18 +13,15 @@ class WebSearchError(RuntimeError):
     """Raised when a search request fails (provider down, bad key)."""
 
 
-def search_configured() -> bool:
+def search_configured(api_key: str | None) -> bool:
     """True if a search provider + key is configured."""
-    cfg = get_search_config()
-    return bool(cfg.get("api_key"))
+    return bool(api_key)
 
 
-async def web_search(query: str, max_results: int = DEFAULT_MAX_RESULTS) -> list[dict]:
+async def web_search(query: str, provider: str, api_key: str, max_results: int = DEFAULT_MAX_RESULTS) -> list[dict]:
     """Run a web search via the configured provider."""
-    cfg = get_search_config()
-    provider = cfg.get("provider", "tavily")
-    api_key = cfg.get("api_key", "")
-
+    provider = provider or "tavily"
+    
     if not api_key:
         raise WebSearchError("No web search API key configured.")
 

@@ -14,12 +14,6 @@ from fastapi.responses import StreamingResponse
 from app.core.auth import CurrentUser
 from app.core.config import get_settings
 from app.core.qdrant import ping_qdrant
-from app.core.runtime_config import (
-    get_llm_config,
-    get_search_config,
-    set_llm_config,
-    set_search_config,
-)
 from app.models.api import (
     AnswerResponse,
     BatchUploadResponse,
@@ -64,43 +58,7 @@ async def _retrieve_and_rerank(request: QueryRequest, user_id: str) -> list[Rera
     return await rerank(request.question, candidates, top_k=top_final)
 
 
-@router.get("/settings", response_model=LLMSettingsOut)
-async def get_settings_endpoint() -> LLMSettingsOut:
-    """Return the active LLM + search provider (never the keys)."""
-    cfg = get_llm_config()
-    search = get_search_config()
-    provider = cfg.get("provider") or get_settings().llm_provider
-    has_key = bool(cfg.get("api_key")) or bool(get_settings().llm_api_key.get_secret_value())
-    return LLMSettingsOut(
-        provider=provider,
-        has_api_key=has_key,
-        search_provider=search.get("provider"),
-        has_search_key=bool(search.get("api_key")),
-    )
 
-@router.put("/settings", response_model=LLMSettingsOut)
-async def put_settings(body: LLMSettings) -> LLMSettingsOut:
-    """Set the BYOK LLM provider + key for this process (in-memory)."""
-    set_llm_config(body.provider, body.api_key)
-    search = get_search_config()
-    return LLMSettingsOut(
-        provider=body.provider,
-        has_api_key=True,
-        search_provider=search.get("provider"),
-        has_search_key=bool(search.get("api_key")),
-    )
-
-@router.put("/settings/search", response_model=LLMSettingsOut)
-async def put_search_settings(body: SearchSettings) -> LLMSettingsOut:
-    """Set the BYOK web-search provider + key for this process (in-memory)."""
-    set_search_config(body.provider, body.api_key)
-    cfg = get_llm_config()
-    return LLMSettingsOut(
-        provider=cfg.get("provider") or get_settings().llm_provider,
-        has_api_key=bool(cfg.get("api_key")),
-        search_provider=body.provider,
-        has_search_key=True,
-    )
 
 @router.get("/documents", response_model=list[DocumentInfo])
 async def get_documents(user_id: CurrentUser) -> list[DocumentInfo]:
@@ -147,8 +105,15 @@ async def upload_docs(
     """Ingest multiple PDFs in one request. Returns per-file results."""
     await _require_qdrant()
 
+    existing_docs = await list_documents(user_id)
+    if len(existing_docs) + len(files) > 5:
+        raise HTTPException(
+            status_code=403, 
+            detail="Portfolio limit: Maximum 5 documents allowed per user."
+        )
+
     settings = get_settings()
-    max_bytes = settings.max_upload_mb * 1024 * 1024
+    max_bytes = 5 * 1024 * 1024  # Portfolio limit: 5MB
     results: list[UploadResponse] = []
 
     for file in files:
@@ -156,7 +121,7 @@ async def upload_docs(
         if len(data) > max_bytes:
             raise HTTPException(
                 status_code=413,
-                detail=f"File {file.filename} exceeds {settings.max_upload_mb} MB limit",
+                detail=f"File {file.filename} exceeds 5 MB limit",
             )
         try:
             result = await ingest_document(data, file.filename or "document.pdf", user_id)
@@ -217,6 +182,10 @@ async def stream_query(
     top_k_final: int | None = Query(default=None, ge=1, le=20),
     use_web_search: bool = Query(default=False),
     document_ids: str | None = Query(default=None, description="Comma-separated document UUIDs"),
+    llm_provider: str | None = Query(default=None),
+    llm_api_key: str | None = Query(default=None),
+    search_provider: str | None = Query(default=None),
+    search_api_key: str | None = Query(default=None),
 ):
     """SSE: status events → answer_delta* → done{sources, processing_ms}."""
     await _require_qdrant()
@@ -247,14 +216,19 @@ async def stream_query(
             web_context = None
             if request.use_web_search:
                 yield _sse("status", {"stage": "searching", "message": "Fetching web results"})
-                if not search_configured():
-                    yield _sse("error", {"detail": "Web search is enabled but no search API key is set. Add a Tavily or Brave key in the Settings page."})
+                if not search_configured(search_api_key):
+                    yield _sse(
+                        "error",
+                        {
+                            "detail": "Web search is enabled but no search API key is set."
+                        },
+                    )
                     return
-                web_context = await web_search(request.question)
+                web_context = await web_search(request.question, provider=search_provider, api_key=search_api_key)
 
-            yield _sse("status", {"stage": "generating", "message": "Generating grounded answer"})
+            yield _sse("status", {"stage": "generating", "message": "Synthesizing answer"})
             try:
-                async for delta in stream_answer(question, chunks, web_context):
+                async for delta in stream_answer(request.question, chunks, web_context, llm_provider, llm_api_key):
                     yield _sse("answer_delta", {"delta": delta})
             except LLMNotConfiguredError as exc:
                 yield _sse("error", {"detail": str(exc)})
