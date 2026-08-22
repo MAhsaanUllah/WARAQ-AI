@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { uploadDocuments } from '../api';
+import React, { useState, useEffect } from 'react';
+import { uploadDocuments, BASE_URL } from '../api';
 import { useAuth } from '@clerk/clerk-react';
 
 export default function UploadPage({ onUploadSuccess }) {
@@ -8,6 +8,30 @@ export default function UploadPage({ onUploadSuccess }) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(null);
+  const [existingDocs, setExistingDocs] = useState([]);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(true);
+
+  const fetchExistingDocs = async () => {
+    setIsLoadingDocs(true);
+    try {
+      const token = await getToken();
+      const response = await fetch(`${BASE_URL}/api/documents`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setExistingDocs(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingDocs(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExistingDocs();
+  }, []);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -32,6 +56,8 @@ export default function UploadPage({ onUploadSuccess }) {
       const token = await getToken();
       const result = await uploadDocuments(files, token);
       setProgress(result);
+      fetchExistingDocs(); // Refresh the list after upload
+      setFiles([]); // Clear selected files
       setTimeout(() => {
         onUploadSuccess(result);
       }, 1500);
@@ -43,9 +69,9 @@ export default function UploadPage({ onUploadSuccess }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '1.5rem', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '1.5rem', overflowY: 'auto', alignItems: 'center' }}>
       
-      <div className="surface-card" style={{ padding: '3rem', width: '100%', maxWidth: '600px', textAlign: 'center' }}>
+      <div className="surface-card" style={{ padding: '3rem', width: '100%', maxWidth: '600px', textAlign: 'center', marginBottom: '2rem' }}>
         <h2 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Upload Resources</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
           Select PDFs to add to your Waraq AI resource library.
@@ -70,7 +96,8 @@ export default function UploadPage({ onUploadSuccess }) {
               border: `2px dashed var(--md-sys-color-outline-variant)`,
               background: 'var(--md-sys-color-surface-container-high)',
               borderRadius: 'var(--radius-lg)',
-              marginBottom: '1rem'
+              marginBottom: '1rem',
+              cursor: 'pointer'
             }}
           >
             <span style={{ color: 'var(--text-muted)' }}>Click to browse or drag and drop PDFs</span>
@@ -117,6 +144,33 @@ export default function UploadPage({ onUploadSuccess }) {
           )}
         </button>
       </div>
+
+      {/* Existing Resources List */}
+      <div style={{ width: '100%', maxWidth: '600px' }}>
+        <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1.1rem' }}>Your Library</h3>
+        {isLoadingDocs ? (
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>Loading resources...</div>
+        ) : existingDocs.length === 0 ? (
+          <div className="surface-card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+            No resources found. Upload a PDF above!
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {existingDocs.map(doc => (
+              <div key={doc.document_id} className="surface-card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+                  📄
+                </div>
+                <div style={{ flexGrow: 1, overflow: 'hidden' }}>
+                  <div style={{ fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.filename}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{doc.pages} pages • {doc.chunks} chunks</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

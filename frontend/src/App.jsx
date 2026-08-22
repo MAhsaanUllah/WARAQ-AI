@@ -63,11 +63,12 @@ function App() {
     setActiveSessionId(id);
   };
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const handleDeleteHistory = () => {
-    if (window.confirm('Are you sure you want to delete all chat history?')) {
-      setSessions([]);
-      setActiveSessionId(Date.now());
-    }
+    setSessions([]);
+    setActiveSessionId(Date.now());
+    setShowDeleteModal(false);
   };
 
   return (
@@ -101,8 +102,22 @@ function App() {
         sessions={sessions} 
         activeSessionId={activeSessionId} 
         onSelectSession={handleSelectSession} 
-        onDeleteHistory={handleDeleteHistory}
+        onDeleteHistory={() => setShowDeleteModal(true)}
       />
+
+      {/* Delete History Modal */}
+      {showDeleteModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="surface-card" style={{ width: '90%', maxWidth: '400px', padding: '2rem', display: 'flex', flexDirection: 'column', textAlign: 'center' }}>
+            <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem' }}>Delete History?</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Are you sure you want to delete all chat history? This action cannot be undone.</p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button className="btn" style={{ flex: 1 }} onClick={() => setShowDeleteModal(false)}>Cancel</button>
+              <button className="btn btn-primary" style={{ flex: 1, background: 'var(--md-sys-color-error)', color: 'white' }} onClick={handleDeleteHistory}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
