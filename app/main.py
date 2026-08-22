@@ -62,6 +62,24 @@ def create_app() -> FastAPI:
             "qdrant": "connected" if qdrant_ok else "unavailable",
         }
 
+    from fastapi.responses import JSONResponse
+    from fastapi import Request
+    import traceback
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        error_msg = traceback.format_exc()
+        print(f"Unhandled Exception: {error_msg}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": str(exc), "traceback": error_msg},
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*",
+            }
+        )
+
     return app
 
 
