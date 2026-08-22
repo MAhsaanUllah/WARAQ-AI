@@ -59,8 +59,8 @@ def _model_for_provider(provider: str) -> str:
         "deepseek": "deepseek/deepseek-chat",
         "gemini": "gemini/gemini-2.0-flash",
         "openai": "openai/gpt-4o-mini",
-        "anthropic": "anthropic/claude-sonnet-4-20250514",
-        "openrouter": "openrouter/anthropic/claude-sonnet-4-20250514",
+        "anthropic": "claude-3-5-sonnet-20241022",
+        "openrouter": "openrouter/anthropic/claude-3.5-sonnet",
     }
     return defaults.get(provider, f"{provider}/{provider}")
 
