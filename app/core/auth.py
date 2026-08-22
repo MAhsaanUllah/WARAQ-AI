@@ -46,7 +46,11 @@ def get_current_user(
     state: RequestState = _get_client().authenticate_request(request, options)
 
     if state.status != AuthStatus.SIGNED_IN or not state.payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        # Include detailed reason if available for debugging
+        reason = getattr(state, "reason", "unknown")
+        # In case state has a message or other attributes, we can extract them
+        error_msg = getattr(state, "message", str(reason))
+        raise HTTPException(status_code=401, detail=f"Invalid or expired token. Reason: {error_msg}")
 
     user_id = state.payload.get("sub")
     if not user_id:
