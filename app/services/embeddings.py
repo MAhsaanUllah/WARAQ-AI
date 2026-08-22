@@ -17,6 +17,14 @@ _lock = Lock()
 from litellm import embedding as litellm_embedding
 from app.core.config import get_settings
 
+def _get_sparse() -> SparseTextEmbedding:
+    global _sparse
+    if _sparse is None:
+        with _lock:
+            if _sparse is None:
+                _sparse = SparseTextEmbedding(model_name=SPARSE_MODEL)
+    return _sparse
+
 async def embed_dense(texts: list[str]) -> list[list[float]]:
     """Embed a batch of texts into dense vectors using Cloud API (LiteLLM) to save RAM."""
     if not texts:
