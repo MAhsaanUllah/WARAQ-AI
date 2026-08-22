@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { streamQuery, uploadDocuments } from '../api';
+import { streamQuery, uploadDocuments, BASE_URL } from '../api';
 import SourceCard from './SourceCard';
 import { useAuth } from '@clerk/clerk-react';
 
@@ -79,8 +79,7 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
     setIsLoadingResources(true);
     try {
       const token = await getToken();
-      const baseUrl = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${baseUrl}/api/documents`, {
+      const response = await fetch(`${BASE_URL}/api/documents`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
