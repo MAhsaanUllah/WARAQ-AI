@@ -34,7 +34,13 @@ def get_current_user(
     token: str | None = Query(default=None, description="Clerk JWT (SSE fallback)"),
 ) -> str:
     """Verify the Clerk token and return the user_id (sub claim)."""
-    raw_token = _extract_token(request, token)
+    # 1. Did it come from the header?
+    auth_header = request.headers.get("authorization")
+    token_from_header = None
+    if auth_header and auth_header.lower().startswith("bearer "):
+        token_from_header = auth_header[7:].strip()
+
+    raw_token = token_from_header or token
     if not raw_token:
         raise HTTPException(status_code=401, detail="Missing authorization token")
 
@@ -44,22 +50,20 @@ def get_current_user(
         authorized_parties=settings.clerk_authorized_parties_list,
     )
     
-    # Clerk authenticate_request reads headers. For SSE, the token is in the query params.
-    # We must build a dummy Requestish object to inject the Authorization header so Clerk sees it.
-    class DummyRequest:
-        def __init__(self, token_str: str):
-            self.headers = {"authorization": f"Bearer {token_str}"}
-            self.cookies = {}
-            self.url = str(request.url)
-            self.method = request.method
-    
-    dummy_req = DummyRequest(raw_token)
-    state: RequestState = _get_client().authenticate_request(dummy_req, options)
+    # 2. If it came from the query string (SSE), we must inject it into a new Request object
+    # so that Clerk's SDK can read it from the headers.
+    req_for_clerk = request
+    if not token_from_header and token:
+        scope = dict(request.scope)
+        headers = list(scope.get("headers", []))
+        headers.append((b"authorization", f"Bearer {token}".encode("latin-1")))
+        scope["headers"] = headers
+        req_for_clerk = Request(scope, request.receive)
+
+    state: RequestState = _get_client().authenticate_request(req_for_clerk, options)
 
     if state.status != AuthStatus.SIGNED_IN or not state.payload:
-        # Include detailed reason if available for debugging
         reason = getattr(state, "reason", "unknown")
-        # In case state has a message or other attributes, we can extract them
         error_msg = getattr(state, "message", str(reason))
         raise HTTPException(status_code=401, detail=f"Invalid or expired token. Reason: {error_msg}")
 
