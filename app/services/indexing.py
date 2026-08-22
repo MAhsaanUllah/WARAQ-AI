@@ -18,7 +18,7 @@ from app.core.qdrant import get_client
 from app.models.ingestion import Chunk, Document
 from app.services.embeddings import embed_dense, embed_sparse
 
-DENSE_DIM = 384
+DENSE_DIM = 768
 BATCH_SIZE = 32
 
 
