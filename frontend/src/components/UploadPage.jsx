@@ -35,7 +35,8 @@ export default function UploadPage({ onUploadSuccess }) {
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFiles(prev => [...prev, ...Array.from(e.target.files)]);
+      const selectedFiles = Array.from(e.target.files);
+      setFiles(prev => [...prev, ...selectedFiles]);
       setError('');
       setProgress(null);
     }
