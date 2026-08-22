@@ -60,7 +60,7 @@ def _model_for_provider(provider: str) -> str:
         "gemini": "gemini/gemini-2.0-flash",
         "openai": "openai/gpt-4o-mini",
         "anthropic": "claude-3-5-sonnet-20241022",
-        "openrouter": "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+        "openrouter": "openrouter/auto",
     }
     return defaults.get(provider, f"{provider}/{provider}")
 
