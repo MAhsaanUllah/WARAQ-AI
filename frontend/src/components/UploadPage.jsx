@@ -39,6 +39,8 @@ export default function UploadPage({ onUploadSuccess }) {
       setError('');
       setProgress(null);
     }
+    // Reset input so the user can select the EXACT same file again if they want
+    if (e.target) e.target.value = '';
   };
 
   const removeFile = (index) => {
