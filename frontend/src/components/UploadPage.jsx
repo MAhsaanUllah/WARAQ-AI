@@ -88,7 +88,23 @@ export default function UploadPage({ onUploadSuccess }) {
           />
           <label 
             htmlFor="file-upload" 
-            className="btn" 
+            className="btn"
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                // filter only pdfs
+                const pdfs = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+                if (pdfs.length > 0) {
+                  setFiles(prev => [...prev, ...pdfs]);
+                  setError('');
+                  setProgress(null);
+                } else {
+                  setError('Please drop a valid PDF file.');
+                }
+              }
+            }} 
             style={{ 
               display: 'block', 
               width: '100%', 
