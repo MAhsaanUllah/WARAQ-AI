@@ -39,8 +39,6 @@ export default function UploadPage({ onUploadSuccess }) {
       setError('');
       setProgress(null);
     }
-    // reset input so the same files can be selected again if needed
-    e.target.value = '';
   };
 
   const removeFile = (index) => {
@@ -95,7 +93,7 @@ export default function UploadPage({ onUploadSuccess }) {
               e.stopPropagation();
               if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                 // filter only pdfs
-                const pdfs = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+                const pdfs = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
                 if (pdfs.length > 0) {
                   setFiles(prev => [...prev, ...pdfs]);
                   setError('');
