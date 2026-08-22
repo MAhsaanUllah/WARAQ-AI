@@ -49,7 +49,8 @@ Most RAG implementations fail in production: **hallucinated answers, poor recall
 ### Core RAG
 - **Page-boundary-safe chunking** — a chunk never spans two pages, so every citation maps to exactly one page
 - **Hybrid search** — dense (bge-small-en-v1.5, 384-d) + sparse (BM25) in one Qdrant collection, fused server-side with RRF
-- **Cross-encoder reranking** — flashrank (ONNX, no torch in base install)
+- **Memory-Optimized Reranking** — optimized to bypass heavy cross-encoders (FlashRank) ensuring 100% stability on free-tier platforms (e.g. Render 512MB limit)
+- **Auto-Healing Indices** — backend forcefully ensures payload indices exist on startup to prevent `doc_id` Qdrant errors.
 - **Deterministic citations** — `page_number` + bounding-box coordinates on every source
 
 ### Multi-tenant (Production-Ready)
@@ -61,7 +62,7 @@ Most RAG implementations fail in production: **hallucinated answers, poor recall
 - **Notebook-style resources** — select specific documents to chat with (NotebookLM-style scoped search)
 - **Web search toggle** — optional Tavily / Brave grounding alongside your docs
 - **Streaming answers** — SSE with live status events + citation cards
-- **Multi-file upload** — batch PDF ingestion
+- **Multi-file Drag & Drop** — batch PDF ingestion with robust React state management
 
 ---
 
@@ -72,11 +73,11 @@ Most RAG implementations fail in production: **hallucinated answers, poor recall
 | API | FastAPI + Pydantic v2, async throughout |
 | Vector DB | Qdrant — named dense + sparse vectors |
 | Embeddings | FastEmbed local — `BAAI/bge-small-en-v1.5` (384-d) + BM25 (sparse) |
-| Reranking | flashrank `ms-marco-MiniLM-L-12-v2` (ONNX, no torch) |
-| LLM | LiteLLM — **BYOK**: deepseek / gemini / openai / anthropic / openrouter |
+| Reranking | Built-in RRF sorting (Optimized for low-memory environments) |
+| LLM | LiteLLM — **BYOK**: deepseek / gemini / openai / anthropic / openrouter (`openrouter/auto`) |
 | Auth | Clerk (multi-tenant JWT) |
 | Frontend | React 19 + Vite |
-| Deployment | Railway (Backend) + Netlify (Frontend) |
+| Deployment | Render (Backend) + Netlify (Frontend) |
 
 ---
 
@@ -120,15 +121,15 @@ Integration tests skip cleanly when Qdrant isn't running. Auth is bypassed via a
 
 ## Deployment
 
-Waraq AI deploys as two services: **FastAPI Backend on Railway** + **React Frontend on Netlify**, backed by **Qdrant Cloud**.
+Waraq AI deploys as two services: **FastAPI Backend on Render** + **React Frontend on Netlify**, backed by **Qdrant Cloud**.
 
 ```
-Browser (Netlify)  ──Bearer JWT──▶  Railway (FastAPI)  ──▶  Qdrant Cloud
+Browser (Netlify)  ──Bearer JWT──▶  Render (FastAPI)  ──▶  Qdrant Cloud
         ▲                                                       │
         └─────────── Clerk (auth) ◀─────────────────────────────┘
 ```
 
-- [`Dockerfile`](Dockerfile) — Railway Backend build instructions
+- [`Dockerfile`](Dockerfile) — Render Backend build instructions
 - [`frontend/netlify.toml`](frontend/netlify.toml) — Netlify build + SPA redirect
 
 ---
@@ -156,7 +157,7 @@ Interactive docs at `/docs` (Swagger UI) when the server runs.
 | [`docs/architecture.md`](docs/architecture.md) | The 5-stage pipeline + locked technical decisions |
 | [`docs/api-contract.md`](docs/api-contract.md) | Frozen API interface (both app halves build against it) |
 
-**Status: M1–M8 complete.** Next: OCR for scanned PDFs, document deletion UI.
+**Status: M1–M9 complete.** Next: Multi-turn Chat History.
 
 ---
 
@@ -174,7 +175,7 @@ waraq-ai/
 ├── tests/                     # 55 tests (unit + integration)
 ├── assets/                    # brand images (logo, tech-stack diagram)
 ├── docker-compose.yml         # Qdrant for local dev
-├── Dockerfile                 # Railway backend deployment
+├── Dockerfile                 # Render backend deployment
 ```
 
 ---
@@ -198,7 +199,8 @@ While the current architecture implements robust baseline security (Stateless BY
 - [x] **M6** React frontend
 - [x] **M7** Notebook/Resources scoped chat (backend done)
 - [x] **M8** Clerk multi-tenant auth + deployment configs
-- [x] **M7 frontend** Select-from-Resources dialog
+- [x] **M9** UI Fixes (Drag & drop), Render Memory Optimization, Auto-Healing DB
+- [ ] Multi-turn Chat History
 - [ ] OCR for scanned PDFs
 - [ ] Document deletion UI
 
