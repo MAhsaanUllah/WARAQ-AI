@@ -17,6 +17,10 @@ async def list_documents(user_id: str) -> list[DocumentInfo]:
     """Return one DocumentInfo per document owned by `user_id`."""
     client = get_client()
     collection = get_settings().qdrant_collection
+    
+    if not await client.collection_exists(collection):
+        return []
+
     tenant_filter = Filter(
         must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]
     )
