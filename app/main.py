@@ -20,6 +20,16 @@ async def lifespan(app: FastAPI):
     configure_logging()
 
     qdrant_ok = await ping_qdrant()
+    if qdrant_ok:
+        try:
+            from app.core.qdrant import get_client
+            client = get_client()
+            # Forcefully ensure indices exist (won't crash if they already exist, but fixes missing ones)
+            await client.create_payload_index(collection_name=settings.qdrant_collection, field_name="user_id", field_schema="keyword")
+            await client.create_payload_index(collection_name=settings.qdrant_collection, field_name="doc_id", field_schema="keyword")
+        except Exception as e:
+            logger.warning(f"Failed to create payload indices on startup: {e}")
+
     logger.info(
         "startup_complete",
         version=__version__,
