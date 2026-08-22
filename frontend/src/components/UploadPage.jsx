@@ -40,7 +40,7 @@ export default function UploadPage({ onUploadSuccess }) {
       setProgress(null);
     }
     // reset input so the same files can be selected again if needed
-    e.target.value = null;
+    e.target.value = '';
   };
 
   const removeFile = (index) => {
