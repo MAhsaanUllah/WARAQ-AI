@@ -45,19 +45,7 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
     };
   }, []);
 
-  const handleShare = () => {
-    // Format chat as markdown text to copy
-    const chatText = history.map(m => {
-      if (m.role === 'user') return `**You:** ${m.text}`;
-      return `**Waraq AI:** ${m.text}`;
-    }).join('\n\n');
-    
-    navigator.clipboard.writeText(chatText).then(() => {
-      alert("Chat copied to clipboard! You can paste it anywhere to share.");
-    }).catch(() => {
-      alert("Failed to copy to clipboard.");
-    });
-  };
+
 
   const handleFileUpload = async (e) => {
     const files = e.target.files && Array.from(e.target.files);
@@ -91,7 +79,8 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
     setIsLoadingResources(true);
     try {
       const token = await getToken();
-      const response = await fetch('/api/documents', {
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${baseUrl}/api/documents`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -176,11 +165,11 @@ export default function QueryPage({ sessionId, initialHistory, onUpdateSession, 
       
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '0.75rem 1.5rem', background: 'var(--md-sys-color-surface-container-high)', borderRadius: 'var(--radius-pill)', boxShadow: 'var(--shadow-sm)' }}>
-        <h2 style={{ margin: 0, fontSize: '1.15rem' }}>Waraq AI Chat</h2>
-        <div className="flex gap-2">
-          <button className="surface-card btn text-secondary" onClick={handleShare} style={{ padding: '0.5rem 1rem' }}>
-            <span style={{ marginRight: '0.5rem' }}>📤</span> Share
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h2 style={{ margin: 0, fontSize: '1.15rem' }}>Waraq AI Chat</h2>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', borderLeft: '1px solid var(--md-sys-color-outline-variant)', paddingLeft: '1rem' }}>
+            Intelligent Document Retrieval with Pinpoint Citations
+          </span>
         </div>
       </div>
 

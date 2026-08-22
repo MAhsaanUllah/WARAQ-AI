@@ -2,6 +2,8 @@
  * API client for Waraq AI
  */
 
+const BASE_URL = import.meta.env.VITE_API_URL || '';
+
 /**
  * Uploads multiple documents to the server for processing.
  * @param {File[]} files 
@@ -19,7 +21,7 @@ export async function uploadDocuments(files, token = null) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch('/api/upload-docs', {
+  const response = await fetch(`${BASE_URL}/api/upload-docs`, {
     method: 'POST',
     headers,
     body: formData,
@@ -53,7 +55,7 @@ export function streamQuery(question, settings, useWebSearch, documentIds, onEve
   const topKCandidates = settings?.topKCandidates || 25;
   const topKFinal = settings?.topKFinal || 5;
   
-  let url = `/api/stream-query?question=${encodeURIComponent(question)}&top_k_candidates=${topKCandidates}&top_k_final=${topKFinal}`;
+  let url = `${BASE_URL}/api/stream-query?question=${encodeURIComponent(question)}&top_k_candidates=${topKCandidates}&top_k_final=${topKFinal}`;
   
   if (settings?.provider) {
     url += `&llm_provider=${encodeURIComponent(settings.provider)}`;

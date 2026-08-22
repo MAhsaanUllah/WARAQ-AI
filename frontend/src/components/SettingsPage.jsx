@@ -58,10 +58,10 @@ export default function SettingsPage({ settings, setSettings }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                 <div>
                   <label htmlFor="topKCandidates" style={{ display: 'block', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.15rem', fontSize: '0.95rem' }}>
-                    Top K Candidates (Hybrid)
+                    Search Depth (Top K Candidates)
                   </label>
                   <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    Initial document chunks retrieved using dense & sparse search.
+                    How many paragraphs the AI reads initially. Higher means better context but slower search.
                   </p>
                 </div>
                 <div style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)', padding: '0.2rem 0.75rem', borderRadius: 'var(--radius-pill)', fontWeight: '700', fontSize: '0.85rem', boxShadow: 'var(--shadow-sm)' }}>
@@ -83,10 +83,10 @@ export default function SettingsPage({ settings, setSettings }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                 <div>
                   <label htmlFor="topKFinal" style={{ display: 'block', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.15rem', fontSize: '0.95rem' }}>
-                    Top K Final (Cross-Encoder)
+                    AI Focus (Top K Final)
                   </label>
                   <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    Highly accurate chunks sent to the LLM for final generation.
+                    How many of the most relevant paragraphs are sent to the AI to answer your question.
                   </p>
                 </div>
                 <div style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)', padding: '0.2rem 0.75rem', borderRadius: 'var(--radius-pill)', fontWeight: '700', fontSize: '0.85rem', boxShadow: 'var(--shadow-sm)' }}>
@@ -266,7 +266,7 @@ export default function SettingsPage({ settings, setSettings }) {
           <div className="surface-card" style={{ padding: '1.25rem', border: '1px solid var(--md-sys-color-outline-variant)', marginTop: '1.5rem' }}>
             <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '0.95rem' }}>Web Search Configuration</h4>
             <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Tavily: https://tavily.com (free tier). Brave: https://brave.com/search/api/ (free tier). The key lives in your browser and is sent securely with each query.
+              Get a free API key from <a href="https://tavily.com" target="_blank" rel="noreferrer" style={{color: 'var(--md-sys-color-primary)'}}>Tavily</a> or <a href="https://brave.com/search/api/" target="_blank" rel="noreferrer" style={{color: 'var(--md-sys-color-primary)'}}>Brave</a>. Keys are securely stored only in your browser.
             </p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

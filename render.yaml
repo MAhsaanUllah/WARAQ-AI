@@ -1,35 +1,15 @@
-# Render Blueprint — Waraq AI backend
-# Deploy: push to GitHub, create a Blueprint from this repo in Render.
-# The frontend (Netlify) needs its own env pointing at the backend URL.
-# NOTE: env vars MUST keep the WARAQAI_ prefix (app/core/config.py).
 services:
   - type: web
     name: waraq-ai-backend
-    runtime: python
-    plan: starter
-    buildCommand: pip install -e ".[dev]"
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /health
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
     envVars:
-      # Vector store: Qdrant Cloud (https://cloud.qdrant.io)
-      - key: WARAQAI_QDRANT_URL
+      - key: PORT
+        value: 7860
+      - key: QDRANT_URL
         sync: false
-      - key: WARAQAI_QDRANT_API_KEY
+      - key: QDRANT_API_KEY
         sync: false
-      - key: WARAQAI_QDRANT_COLLECTION
-        value: waraq_docs
-      # Auth: Clerk (https://clerk.com)
       - key: WARAQAI_CLERK_SECRET_KEY
         sync: false
-      # Frontend origin(s) — replace with your Netlify URL once deployed
-      - key: WARAQAI_CORS_ORIGINS
-        value: http://localhost:5173
-      - key: WARAQAI_CLERK_AUTHORIZED_PARTIES
-        value: http://localhost:5173,http://localhost:8000
-      # LLM (BYOK)
-      - key: WARAQAI_LLM_PROVIDER
-        value: deepseek
-      - key: WARAQAI_LLM_API_KEY
-        sync: false
-      - key: WARAQAI_LOG_LEVEL
-        value: INFO
