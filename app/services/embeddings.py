@@ -7,15 +7,20 @@ from threading import Lock
 
 from fastembed import SparseEmbedding, SparseTextEmbedding, TextEmbedding
 
-DENSE_MODEL = "BAAI/bge-small-en-v1.5"
+DENSE_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 SPARSE_MODEL = "Qdrant/bm25"
 
 _dense: TextEmbedding | None = None
 _sparse: SparseTextEmbedding | None = None
 _lock = Lock()
 
-from litellm import embedding as litellm_embedding
-from app.core.config import get_settings
+def _get_dense() -> TextEmbedding:
+    global _dense
+    if _dense is None:
+        with _lock:
+            if _dense is None:
+                _dense = TextEmbedding(model_name=DENSE_MODEL)
+    return _dense
 
 def _get_sparse() -> SparseTextEmbedding:
     global _sparse
@@ -26,25 +31,11 @@ def _get_sparse() -> SparseTextEmbedding:
     return _sparse
 
 async def embed_dense(texts: list[str]) -> list[list[float]]:
-    """Embed a batch of texts into dense vectors using Cloud API (LiteLLM) to save RAM."""
+    """Embed a batch of texts into dense vectors using ultra-lightweight local model."""
     if not texts:
         return []
-        
-    settings = get_settings()
-    # If user provided gemini API key, we use gemini/text-embedding-004
-    # LiteLLM routes automatically based on the model name prefix
-    model_name = "gemini/text-embedding-004"
-    api_key = settings.llm_api_key.get_secret_value()
-    
-    # Run in thread since litellm is synchronous
-    response = await asyncio.to_thread(
-        litellm_embedding,
-        model=model_name,
-        input=texts,
-        api_key=api_key
-    )
-    
-    return [item["embedding"] for item in response["data"]]
+    vectors = await asyncio.to_thread(lambda: list(_get_dense().embed(texts)))
+    return [vec.tolist() for vec in vectors]
 
 
 async def embed_sparse(texts: list[str]) -> list[dict]:
