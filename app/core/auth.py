@@ -43,7 +43,18 @@ def get_current_user(
         secret_key=settings.clerk_secret_key.get_secret_value() or None,
         authorized_parties=settings.clerk_authorized_parties_list,
     )
-    state: RequestState = _get_client().authenticate_request(request, options)
+    
+    # Clerk authenticate_request reads headers. For SSE, the token is in the query params.
+    # We must build a dummy Requestish object to inject the Authorization header so Clerk sees it.
+    class DummyRequest:
+        def __init__(self, token_str: str):
+            self.headers = {"authorization": f"Bearer {token_str}"}
+            self.cookies = {}
+            self.url = str(request.url)
+            self.method = request.method
+    
+    dummy_req = DummyRequest(raw_token)
+    state: RequestState = _get_client().authenticate_request(dummy_req, options)
 
     if state.status != AuthStatus.SIGNED_IN or not state.payload:
         # Include detailed reason if available for debugging
