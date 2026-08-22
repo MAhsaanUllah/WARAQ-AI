@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: SecretStr = SecretStr("")
-    qdrant_collection: str = "waraq_docs"
+    qdrant_collection: str = "waraq_docs_v2"
 
     llm_provider: LLMProvider = "deepseek"
     llm_api_key: SecretStr = SecretStr("")
