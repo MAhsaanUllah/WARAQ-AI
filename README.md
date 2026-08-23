@@ -26,7 +26,7 @@
 Most RAG implementations fail in production: **hallucinated answers, poor recall on exact terms, and citations that can't be verified.** Waraq AI bridges the "toy RAG vs production RAG" gap with a 5-stage pipeline where **every claim traces to a real PDF page + bounding box** — not a made-up source.
 
 <p align="center">
-  <img src="assets/Dashboard.png" alt="Waraq AI Dashboard" width="100%"/>
+  <img src="assets/DASHBOARD.png" alt="Waraq AI Dashboard" width="100%"/>
 </p>
 
 <p align="center">
