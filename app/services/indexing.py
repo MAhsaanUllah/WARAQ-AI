@@ -44,6 +44,12 @@ async def ensure_collection() -> None:
         field_name="user_id",
         field_schema="keyword",
     )
+    
+    await client.create_payload_index(
+        collection_name=settings.qdrant_collection,
+        field_name="doc_id",
+        field_schema="keyword",
+    )
 
 
 async def index_document(document: Document, user_id: str) -> int:
