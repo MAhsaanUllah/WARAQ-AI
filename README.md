@@ -7,12 +7,16 @@
 </p>
 
 <p align="center">
+  <b>Live Demo:</b> <a href="https://waraqai.netlify.app/">https://waraqai.netlify.app/</a>
+</p>
+
+<p align="center">
   <a href="#features"><img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white"/></a>
   <a href="#features"><img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white"/></a>
   <a href="#features"><img alt="Qdrant" src="https://img.shields.io/badge/Qdrant-v1.19-EB4D5D"/></a>
   <a href="#features"><img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black"/></a>
   <a href="LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"/></a>
-  <a href="docs/DEPLOYMENT.md"><img alt="Deploy" src="https://img.shields.io/badge/deploy-Railway-blue"/></a>
+  <a href="https://waraqai.netlify.app/"><img alt="Deploy" src="https://img.shields.io/badge/deploy-Render-46E3B7?logo=render&logoColor=white"/></a>
 </p>
 
 ---
@@ -20,6 +24,10 @@
 ## What is Waraq AI?
 
 Most RAG implementations fail in production: **hallucinated answers, poor recall on exact terms, and citations that can't be verified.** Waraq AI bridges the "toy RAG vs production RAG" gap with a 5-stage pipeline where **every claim traces to a real PDF page + bounding box** — not a made-up source.
+
+<p align="center">
+  <img src="assets/Dashboard.png" alt="Waraq AI Dashboard" width="100%"/>
+</p>
 
 <p align="center">
   <img src="assets/LOGO.png" alt="Waraq AI architecture" width="480"/>
