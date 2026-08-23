@@ -10,6 +10,12 @@ from app.api.routes.rag import router as rag_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.core.qdrant import close_client, ping_qdrant
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Global rate limiter (based on IP address)
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -51,6 +57,9 @@ def create_app() -> FastAPI:
         version=__version__,
         lifespan=lifespan,
     )
+
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     app.add_middleware(
         CORSMiddleware,

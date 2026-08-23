@@ -8,7 +8,7 @@ import json
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, Request
 from fastapi.responses import StreamingResponse
 
 from app.core.auth import CurrentUser
@@ -37,6 +37,7 @@ from app.services.ingestion import ingest_document
 from app.services.reranking import rerank
 from app.services.retrieval import hybrid_search
 from app.services.websearch import search_configured, web_search
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/api", tags=["rag"])
 
@@ -61,13 +62,16 @@ async def _retrieve_and_rerank(request: QueryRequest, user_id: str) -> list[Rera
 
 
 @router.get("/documents", response_model=list[DocumentInfo])
-async def get_documents(user_id: CurrentUser) -> list[DocumentInfo]:
+@limiter.limit("30/minute")
+async def get_documents(request: Request, user_id: CurrentUser) -> list[DocumentInfo]:
     """List the current user's indexed documents."""
     await _require_qdrant()
     return await list_documents(user_id)
 
 @router.post("/upload-doc", response_model=UploadResponse, status_code=201)
+@limiter.limit("5/minute")
 async def upload_doc(
+    request: Request,
     user_id: CurrentUser,
     file: Annotated[UploadFile, File(...)],
 ) -> UploadResponse:
@@ -98,7 +102,9 @@ async def upload_doc(
     )
 
 @router.post("/upload-docs", response_model=BatchUploadResponse, status_code=201)
+@limiter.limit("5/minute")
 async def upload_docs(
+    request: Request,
     user_id: CurrentUser,
     files: Annotated[list[UploadFile], File(...)],
 ) -> BatchUploadResponse:
@@ -144,25 +150,26 @@ async def upload_docs(
     )
 
 @router.post("/query", response_model=AnswerResponse)
-async def query_doc(request: QueryRequest, user_id: CurrentUser) -> AnswerResponse:
+@limiter.limit("10/minute")
+async def query_doc(request: Request, query_request: QueryRequest, user_id: CurrentUser) -> AnswerResponse:
     """Stages 3-5: hybrid search, rerank, grounded answer + citations."""
     await _require_qdrant()
 
     start = time.perf_counter()
-    chunks = await _retrieve_and_rerank(request, user_id)
+    chunks = await _retrieve_and_rerank(query_request, user_id)
 
     web_context = None
-    if request.use_web_search:
+    if query_request.use_web_search:
         if not search_configured():
             raise HTTPException(
                 status_code=503,
                 detail="Web search is enabled but no search API key is set. "
                        "Add a Tavily or Brave key in the Settings page.",
             )
-        web_context = await web_search(request.question)
+        web_context = await web_search(query_request.question)
 
     try:
-        answer = await generate_answer(request.question, chunks, web_context)
+        answer = await generate_answer(query_request.question, chunks, web_context)
     except LLMNotConfiguredError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -175,7 +182,9 @@ async def query_doc(request: QueryRequest, user_id: CurrentUser) -> AnswerRespon
     )
 
 @router.get("/stream-query")
+@limiter.limit("10/minute")
 async def stream_query(
+    request: Request,
     user_id: CurrentUser,
     question: str = Query(min_length=1, max_length=2000),
     top_k_candidates: int | None = Query(default=None, ge=1, le=100),
@@ -190,7 +199,7 @@ async def stream_query(
     """SSE: status events → answer_delta* → done{sources, processing_ms}."""
     await _require_qdrant()
     parsed_ids = [d.strip() for d in document_ids.split(",") if d.strip()] if document_ids else None
-    request = QueryRequest(
+    query_request = QueryRequest(
         question=question,
         top_k_candidates=top_k_candidates,
         top_k_final=top_k_final,
@@ -200,21 +209,21 @@ async def stream_query(
 
     start = time.perf_counter()
     settings = get_settings()
-    top_final = request.top_k_final or settings.top_k_final
+    top_final = query_request.top_k_final or settings.top_k_final
 
     async def event_stream():
         try:
             yield _sse("status", {"stage": "retrieving", "message": "Fused candidates via RRF"})
-            candidates = await hybrid_search(request, user_id)
+            candidates = await hybrid_search(query_request, user_id)
             if not candidates:
                 yield _sse("error", {"detail": "No documents indexed yet"})
                 return
 
             yield _sse("status", {"stage": "reranking", "message": f"Selected top {top_final} chunks"})
-            chunks = await rerank(request.question, candidates, top_k=top_final)
+            chunks = await rerank(query_request.question, candidates, top_k=top_final)
 
             web_context = None
-            if request.use_web_search:
+            if query_request.use_web_search:
                 yield _sse("status", {"stage": "searching", "message": "Fetching web results"})
                 if not search_configured(search_api_key):
                     yield _sse(
@@ -224,11 +233,11 @@ async def stream_query(
                         },
                     )
                     return
-                web_context = await web_search(request.question, provider=search_provider, api_key=search_api_key)
+                web_context = await web_search(query_request.question, provider=search_provider, api_key=search_api_key)
 
             yield _sse("status", {"stage": "generating", "message": "Synthesizing answer"})
             try:
-                async for delta in stream_answer(request.question, chunks, web_context, llm_provider, llm_api_key):
+                async for delta in stream_answer(query_request.question, chunks, web_context, llm_provider, llm_api_key):
                     yield _sse("answer_delta", {"delta": delta})
             except LLMNotConfiguredError as exc:
                 yield _sse("error", {"detail": str(exc)})

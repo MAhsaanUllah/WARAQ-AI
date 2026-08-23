@@ -11,3 +11,4 @@ flashrank>=0.2
 litellm>=1.40
 httpx>=0.27
 clerk-backend-api>=7.0
+slowapi>=0.1.9
